@@ -1,0 +1,11 @@
+{
+  "name": "فیت‌تِرَک پرو | تقویم هوشمند ۳۰ روزه تمرین و تغذیه",
+  "short_name": "FitTrack Pro",
+  "description": "برنامه ۳۰ روزه چندکاربره تمرین، کلیستنیکس، تغذیه و خروجی تحلیل هوش مصنوعی",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#08080a",
+  "dir": "rtl",
+  "lang": "fa"
+}
