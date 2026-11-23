@@ -1,0 +1,9 @@
+name = "fittrack-pro"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "public"
+
+# پس از ساخت دیتابیس D1 با دستور npm run db:create، شناسه database_id خود را پایین جایگزین کنید
+[[d1_databases]]
+binding = "DB"
+database_name = "fittrack-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

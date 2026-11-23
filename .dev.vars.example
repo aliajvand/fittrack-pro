@@ -1,0 +1,8 @@
+# این فایل را به .dev.vars کپی کنید و فقط روی سیستم لوکال استفاده کنید (هرگز در گیت پوش نکنید)
+# برای محیط اصلی (Production)، این مقادیر را در Cloudflare Dashboard -> Pages -> Settings -> Environment Variables وارد کنید
+
+SMSIR_API_KEY=GtvGkdYwIPTbjFh5bBdfxxhC1TEraGzgxRmxDy1AtOIfh4Ks
+SMSIR_TEMPLATE_ID=100000
+SMSIR_PARAM_NAME=test
+JWT_SECRET=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+DEV_MODE=false

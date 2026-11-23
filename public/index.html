@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitTrack Pro | پلتفرم هوشمند برنامه ۳۰ روزه، تغذیه و تحلیل AI</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#08080a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+
+  <!-- AUTH SCREEN -->
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">FitTrack Pro • Cloudflare + SMS.ir</div>
+      <h1>ورود به حساب ورزشی خودت</h1>
+      <p>هر فرد حساب شخصی، تقویم ۳۰ روزه، یادداشت‌ها و خروجی اختصاصی برای تحلیل هوش مصنوعی دارد.</p>
+
+      <div id="otpStep1">
+        <div class="field-group">
+          <label class="field-label" for="authMobile">شماره موبایل (ایران)</label>
+          <input type="tel" id="authMobile" class="input-field ltr-input" placeholder="09123456789" maxlength="13" />
+        </div>
+        <button id="sendOtpBtn" class="btn btn-primary btn-full" onclick="handleSendOtp()">دریافت کد تأیید پیامکی</button>
+      </div>
+
+      <div id="otpStep2" class="hidden">
+        <div class="field-group">
+          <label class="field-label">کد ۶ رقمی ارسال‌شده به <strong id="otpSentMobile"></strong></label>
+          <input type="text" inputmode="numeric" id="authOtpCode" class="input-field ltr-input" placeholder="123456" maxlength="6" />
+        </div>
+        <button id="verifyOtpBtn" class="btn btn-primary btn-full" onclick="handleVerifyOtp()">ورود به حساب کاربری</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:0.78rem; color:var(--text-muted);">
+          <span id="otpResendTimer"></span>
+          <button class="btn btn-ghost" style="padding:4px 8px; font-size:0.76rem;" onclick="backToMobileStep()">تغییر شماره</button>
+        </div>
+      </div>
+
+      <div class="auth-divider">یا برای پیش‌نمایش و تست سریع</div>
+      <button class="btn btn-full" onclick="handleDemoLogin()">ورود سریع تستی (حالت دمو بدون نیاز به پیامک)</button>
+
+      <div class="status-pill">
+        <span><span id="backendStatusDot" class="status-dot dot-offline"></span><span id="backendStatusText">در حال بررسی سرور...</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP SHELL -->
+  <div id="appShell" class="container hidden">
+    <header class="topbar">
+      <div class="brand">
+        <h1>
+          FitTrack Pro
+          <span id="syncBadge" class="sync-badge">همگام با کلودفلر ✓</span>
+        </h1>
+        <p id="headerWelcome">در حال بارگذاری اطلاعات...</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-ai" onclick="switchMainView('ai')">خروجی تحلیل هوش مصنوعی</button>
+        <button class="btn" onclick="openProfileModal(false)">پروفایل و برنامه</button>
+        <button class="btn" id="themeBtn" onclick="toggleTheme()">حالت روشن</button>
+        <button class="btn btn-danger" onclick="handleLogout()">خروج</button>
+      </div>
+    </header>
+
+    <nav class="main-nav">
+      <button id="nav_calendar" class="nav-pill active" onclick="switchMainView('calendar')">تقویم ۳۰ روزه تمرین و تغذیه</button>
+      <button id="nav_analytics" class="nav-pill" onclick="switchMainView('analytics')">نمودار پیشرفت و رکوردها</button>
+      <button id="nav_ai" class="nav-pill" onclick="switchMainView('ai')">استودیو خروجی هوش مصنوعی (AI)</button>
+    </nav>
+
+    <!-- VIEW 1: CALENDAR -->
+    <div id="view_calendar">
+      <section class="stats-grid">
+        <div class="stat-card stat-card-ring">
+          <div class="ring-wrap">
+            <svg viewBox="0 0 64 64">
+              <circle class="ring-bg" cx="32" cy="32" r="27"></circle>
+              <circle class="ring-fg" id="progressRing" cx="32" cy="32" r="27" stroke-dasharray="169.65" stroke-dashoffset="169.65"></circle>
+            </svg>
+            <div class="ring-text" id="statPercent">۰٪</div>
+          </div>
+          <div>
+            <div class="stat-label">روزهای تکمیل‌شده</div>
+            <div class="stat-value" id="statDays">۰ / ۳۰</div>
+            <div class="stat-sub" id="statTasks">۰ حرکت</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">تداوم فعلی (Streak)</div>
+          <div class="stat-value" id="statStreak">۰ روز</div>
+          <div class="stat-sub">میانگین خواب: <strong id="statAvgSleep">--</strong> ساعت</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">پایبندی پروتئین روزانه</div>
+          <div class="stat-value" id="statProteinDays">۰ روز</div>
+          <div class="stat-sub">روزهای رسیدن به پروتئین هدف</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">آخرین وزن ناشتا</div>
+          <div class="stat-value" id="statWeight">۸۱.۵ ک‌گ</div>
+          <div class="stat-sub">ذخیره خودکار در حساب شخصی</div>
+        </div>
+      </section>
+
+      <div class="filter-row">
+        <div class="tabs" id="weekTabs">
+          <button class="tab-btn active" onclick="setWeekFilter(0, this)">همه ۳۰ روز</button>
+          <button class="tab-btn" onclick="setWeekFilter(1, this)">هفته ۱</button>
+          <button class="tab-btn" onclick="setWeekFilter(2, this)">هفته ۲</button>
+          <button class="tab-btn" onclick="setWeekFilter(3, this)">هفته ۳</button>
+          <button class="tab-btn" onclick="setWeekFilter(4, this)">هفته ۴</button>
+          <button class="tab-btn" onclick="setWeekFilter(5, this)">روز ۲۹-۳۰</button>
+        </div>
+      </div>
+
+      <main id="calendarRoot"></main>
+    </div>
+
+    <!-- VIEW 2: ANALYTICS -->
+    <div id="view_analytics" class="hidden">
+      <div class="charts-grid">
+        <div class="panel-card">
+          <h3>نمودار روند وزن ناشتا (کیلوگرم)</h3>
+          <p class="panel-sub">بر اساس وزن‌های ثبت‌شده در تب آمادگی هر روز</p>
+          <div id="weightChartBox"></div>
+        </div>
+        <div class="panel-card">
+          <h3>نمودار پروتئین مصرفی روزانه (گرم)</h3>
+          <p class="panel-sub">خط آبی هدف پروتئین روزانه توست؛ سبز = رسیدن به هدف</p>
+          <div id="proteinChartBox"></div>
+        </div>
+      </div>
+      <div class="panel-card">
+        <h3>تاریخچه پیشرفت رکورد حرکات شاخص (PR Tracker)</h3>
+        <p class="panel-sub">هر عددی که جلوی حرکات ثبت می‌کنی به‌صورت خودکار اینجا دسته‌بندی می‌شود</p>
+        <div id="prListBox" class="pr-grid"></div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: AI EXPORT STUDIO -->
+    <div id="view_ai" class="hidden">
+      <div class="panel-card">
+        <h3>استودیو خروجی برای تحلیل هوش مصنوعی (Gemini / ChatGPT / Claude)</h3>
+        <p class="panel-sub">همه تیک‌ها، وزنه‌ها، تغذیه، خواب، بدن‌درد و توضیحات شخصی هر روزت به یک گزارش مهندسی‌شده تبدیل می‌شود تا هوش مصنوعی دقیق مثل مربی تحلیلت کند.</p>
+
+        <div class="ai-controls">
+          <div>
+            <label class="field-label" for="aiRangeSelect">بازه زمانی گزارش</label>
+            <select id="aiRangeSelect" class="select-field" onchange="refreshAiPreview()">
+              <option value="all">کل دوره ۳۰ روزه</option>
+              <option value="w1">فقط هفته ۱ (روز ۱ تا ۷)</option>
+              <option value="w2">فقط هفته ۲ (روز ۸ تا ۱۴)</option>
+              <option value="w3">فقط هفته ۳ (روز ۱۵ تا ۲۱)</option>
+              <option value="w4">فقط هفته ۴ (روز ۲۲ تا ۲۸)</option>
+              <option value="last7">۷ روز پایانی</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="aiPromptTypeSelect">سبک تحلیل مربی هوش مصنوعی</label>
+            <select id="aiPromptTypeSelect" class="select-field" onchange="refreshAiPreview()">
+              <option value="coach_full">تحلیل جامع مربی (نمره + اصلاح برنامه + پاسخ به یادداشت‌ها)</option>
+              <option value="nutrition_audit">تحلیل تخصصی تغذیه، پروتئین و روند وزن</option>
+              <option value="strength_overload">تحلیل اضافه بار، رکوردها و پیشرفت کلیستنیکس</option>
+            </select>
+          </div>
+        </div>
+
+        <textarea id="aiPromptPreview" class="ai-preview" readonly></textarea>
+
+        <div class="export-actions">
+          <button class="btn btn-ai" onclick="copyAiPrompt()">کپی مستقیم پرامپت برای هوش مصنوعی</button>
+          <button class="btn btn-primary" onclick="downloadAiMarkdown()">دانلود فایل Markdown (.md)</button>
+          <button class="btn" onclick="downloadAiJson()">دانلود دیتاست JSON (.json)</button>
+          <button class="btn" onclick="downloadAiCsv()">دانلود جدول اکسل CSV (.csv)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY DETAIL MODAL -->
+  <div class="modal-backdrop" id="dayModal" onclick="if(event.target.id==='dayModal') closeDayModal()">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div>
+          <span class="badge" id="mBadge"></span>
+          <h3 id="mTitle"></h3>
+          <div class="modal-meta" id="mMeta"></div>
+        </div>
+        <button class="close-btn" onclick="closeDayModal()">×</button>
+      </div>
+
+      <div class="modal-tabs">
+        <button class="m-tab-btn active" id="tabBtnWorkout" onclick="switchModalTab('workout')">تمرین، رکورد و ویرایش</button>
+        <button class="m-tab-btn" id="tabBtnMeals" onclick="switchModalTab('meals')">تغذیه و کالری امروز</button>
+        <button class="m-tab-btn" id="tabBtnRecovery" onclick="switchModalTab('recovery')">آمادگی، وزن و توضیحات شخصی</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- TAB 1: WORKOUT -->
+        <div class="tab-pane active" id="paneWorkout">
+          <div class="coach-note"><strong>نکته مربی:</strong> <span id="mCoachNote"></span></div>
+          <div class="chest-guardrail" id="mChestGuard"></div>
+
+          <div class="mode-switch-box hidden" id="mLightModeBox">
+            <div>
+              <strong style="font-size:0.83rem; display:block;">حالت هوشمند پنج‌شنبه</strong>
+              <span style="font-size:0.74rem; color:var(--text-muted);">در صورت کم‌خوابی یا کوفتگی به حالت سبک ریکاوری تغییر بده</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="mode-pill" id="btnModeFull" onclick="setDayLightMode(false)">حالت کامل</button>
+              <button class="mode-pill" id="btnModeLight" onclick="setDayLightMode(true)">حالت سبک ریکاوری</button>
+            </div>
+          </div>
+
+          <div class="timer-bar">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <span style="font-size:0.76rem; color:var(--text-muted); font-weight:700;">تایمر استراحت / پلانک:</span>
+              <span class="timer-display" id="timerDisplay">۰۰:۰۰</span>
+            </div>
+            <div class="timer-presets">
+              <button class="t-btn" onclick="startTimer(30)">۳۰ث</button>
+              <button class="t-btn" onclick="startTimer(45)">۴۵ث</button>
+              <button class="t-btn" onclick="startTimer(60)">۶۰ث</button>
+              <button class="t-btn" onclick="startTimer(75)">۷۵ث</button>
+              <button class="t-btn" onclick="startTimer(90)">۹۰ث</button>
+              <button class="t-btn" id="timerStopBtn" onclick="stopTimer()">توقف</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <span>چک‌لیست حرکات امروز</span>
+              <span id="mExCount" style="font-size:0.76rem; color:var(--text-muted);"></span>
+            </div>
+            <div class="checklist" id="mExercises"></div>
+          </div>
+
+          <div>
+            <div class="section-title"><span>+ افزودن حرکت شخصی به این روز</span></div>
+            <div class="add-form-box">
+              <input type="text" id="newExName" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="نام حرکت (مثلاً دیپ پارالل)" />
+              <input type="text" id="newExDetail" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="ست و تکرار (مثلاً ۳×۱۰)" />
+              <input type="text" id="newExUnit" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="واحد (ک‌گ/تکرار)" />
+              <button class="btn btn-primary" style="padding:8px 14px;" onclick="addCustomExercise()">افزودن</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: MEALS -->
+        <div class="tab-pane" id="paneMeals">
+          <div class="macro-summary">
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+                <span>کالری امروز</span>
+                <span id="mealKcalText">۰ / ۲۲۰۰</span>
+              </div>
+              <div class="macro-bar-wrap"><div class="macro-bar-kcal" id="mealKcalBar"></div></div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+                <span>پروتئین امروز</span>
+                <span id="mealProtText">۰ / ۱۵۰</span>
+              </div>
+              <div class="macro-bar-wrap"><div class="macro-bar-prot" id="mealProtBar"></div></div>
+            </div>
+          </div>
+
+          <div class="section-title"><span id="mealPlanTitle"></span></div>
+          <div class="checklist" id="mMealsList"></div>
+
+          <div>
+            <div class="section-title"><span>+ ثبت خوراکی یا میان‌وعده اضافی امروز</span></div>
+            <div class="add-form-box">
+              <input type="text" id="customMealName" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="مثلاً ۱ اسکوپ وی یا ۲ تخم‌مرغ" />
+              <input type="number" id="customMealKcal" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="کالری (مثلاً 150)" />
+              <input type="number" id="customMealProt" class="input-field" style="padding:8px 10px; font-size:0.8rem;" placeholder="پروتئین (گرم)" />
+              <button class="btn btn-primary" style="padding:8px 14px;" onclick="addCustomMeal()">ثبت</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: RECOVERY & PERSONAL NOTES -->
+        <div class="tab-pane" id="paneRecovery">
+          <div class="readiness-grid">
+            <div class="meter-card">
+              <div class="meter-head"><span>خواب دیشب</span><span id="mSleepLabel">۷.۵ ساعت</span></div>
+              <input type="range" min="4" max="10" step="0.5" value="7.5" class="slider" id="mSleep" oninput="updateReadinessUI()" />
+            </div>
+            <div class="meter-card">
+              <div class="meter-head"><span>بدن‌درد (قانون ۷)</span><span id="mDomsLabel">۰ از ۱۰</span></div>
+              <input type="range" min="0" max="10" step="1" value="0" class="slider slider-doms" id="mDoms" oninput="updateReadinessUI()" />
+            </div>
+            <div class="meter-card">
+              <div class="meter-head"><span>انرژی تمرین</span><span id="mEnergyLabel">۷ از ۱۰</span></div>
+              <input type="range" min="1" max="10" step="1" value="7" class="slider slider-energy" id="mEnergy" oninput="updateReadinessUI()" />
+            </div>
+          </div>
+
+          <div class="readiness-banner r-green" id="mReadinessBanner"></div>
+
+          <div>
+            <div class="section-title"><span>عادت‌های ریکاوری امروز</span></div>
+            <div class="habits-grid" id="mHabits"></div>
+          </div>
+
+          <div>
+            <div class="section-title"><span>ثبت وزن ناشتا و سایزگیری اختیاری</span></div>
+            <div class="metrics-grid">
+              <input type="number" step="0.1" class="input-field" id="mWeight" placeholder="وزن ناشتا (کیلوگرم)" oninput="saveDayLog()" />
+              <input type="number" step="0.5" class="input-field" id="mWaist" placeholder="دور کمر (سانتی‌متر)" oninput="saveDayLog()" />
+              <input type="number" step="0.5" class="input-field" id="mChest" placeholder="دور سینه (سانتی‌متر)" oninput="saveDayLog()" />
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title"><span>توضیحات شخصی امروز (مستقیماً وارد گزارش تحلیل هوش مصنوعی می‌شود)</span></div>
+            <textarea id="mNote" rows="4" class="textarea-field" placeholder="مثلاً: امروز پرس بالاسینه با دمبل ۱۲ راحت بود، کمی خستگی در شانه راست داشتم، شام کمی دیرتر خوردم..." oninput="saveDayLog()"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="completeAllToday()">تکمیل همه تیک‌های امروز</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="prevBtn" onclick="navigateDay(-1)">روز قبل</button>
+          <button class="btn" id="nextBtn" onclick="navigateDay(1)">روز بعد</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE & PROGRAM SETTINGS MODAL -->
+  <div class="modal-backdrop" id="profileModal" onclick="if(event.target.id==='profileModal') closeProfileModal()">
+    <div class="modal" style="max-width:580px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="pModalTitle">تنظیمات پروفایل و برنامه</h3>
+          <div class="modal-meta">این مشخصات در محاسبه کالری و خروجی تحلیل هوش مصنوعی استفاده می‌شود</div>
+        </div>
+        <button class="close-btn" onclick="closeProfileModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="profile-grid">
+          <div>
+            <label class="field-label">نام یا لقب</label>
+            <input type="text" id="pName" class="input-field" placeholder="مثلاً علی" />
+          </div>
+          <div>
+            <label class="field-label">سن (سال)</label>
+            <input type="number" id="pAge" class="input-field" />
+          </div>
+          <div>
+            <label class="field-label">قد (سانتی‌متر)</label>
+            <input type="number" id="pHeight" class="input-field" />
+          </div>
+          <div>
+            <label class="field-label">وزن شروع (کیلوگرم)</label>
+            <input type="number" step="0.1" id="pWeight" class="input-field" />
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">هدف اصلی دوره</label>
+          <select id="pGoal" class="select-field">
+            <option value="recomp">چربی‌سوزی و فیت شدن (Recomposition)</option>
+            <option value="cut">کاهش وزن و چربی‌سوزی</option>
+            <option value="bulk">عضله‌سازی و افزایش حجم</option>
+            <option value="calisthenics">مهارت و قدرت کلیستنیکس</option>
+            <option value="maintain">حفظ فرم و سلامت عمومی</option>
+          </select>
+        </div>
+
+        <div class="profile-grid">
+          <div>
+            <label class="field-label">هدف کالری روزانه</label>
+            <input type="number" id="pKcal" class="input-field" />
+          </div>
+          <div>
+            <label class="field-label">هدف پروتئین روزانه (گرم)</label>
+            <input type="number" id="pProtein" class="input-field" />
+          </div>
+        </div>
+        <button class="btn" onclick="autoCalcNutrition()">محاسبه هوشمند کالری و پروتئین بر اساس قد و وزن</button>
+
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">قالب برنامه ۳۰ روزه</label>
+          <select id="pTemplate" class="select-field">
+            <option value="hybrid_calisthenics">باشگاه + کلیستنیکس (نسخه Pro ۳۰ روزه)</option>
+            <option value="home_calisthenics">کلیستنیکس و دمبل در خانه</option>
+            <option value="custom_blank">برنامه خالی (شخصی‌سازی کامل از صفر)</option>
+          </select>
+          <label style="display:flex; align-items:center; gap:8px; margin-top:8px; font-size:0.8rem; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="pResetTemplate" />
+            <span>جایگزینی کل برنامه ۳۰ روزه با قالب انتخابی بالا (تیک‌های قبلی حفظ می‌شوند)</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveProfileSettings()">ذخیره تغییرات</button>
+        <button class="btn" onclick="closeProfileModal()">انصراف</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="/assets/js/app.js"></script>
+</body>
+</html>

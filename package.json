@@ -1,0 +1,16 @@
+{
+  "name": "fittrack-cloudflare-pro",
+  "version": "1.0.0",
+  "description": "Multi-user 30-Day Fitness, Calisthenics & Nutrition Web App with SMS.ir OTP Auth, Cloudflare D1 Sync & AI Coach Export",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --d1=DB",
+    "db:create": "wrangler d1 create fittrack-db",
+    "db:migrate:local": "wrangler d1 execute fittrack-db --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute fittrack-db --remote --file=./schema.sql",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
